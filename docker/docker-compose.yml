@@ -1,0 +1,13 @@
+version: '3.1'
+
+services:
+
+  jadio-podcast:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    tty: true
+    shm_size: 2g
+    volumes:
+      - ${MEDIA_ROOT}:/data/media
