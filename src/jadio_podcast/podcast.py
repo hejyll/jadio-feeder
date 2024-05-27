@@ -269,7 +269,7 @@ class PodcastRssFeed:
 
         # create items of RSS feed
         feed_generator = channel.to_feed_generator()
-        for program in self.programs:
+        for program in programs:
             item = PodcastItem.from_recorded_program(program, base_url, media_root)
             item.set_feed_entry(feed_generator.add_entry())
 
