@@ -17,7 +17,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("base_url", type=str, help="Base URL of httpd")
     parser.add_argument(
-        "rss_feeds_root", type=Path, help="Output RSS feedsroot directory"
+        "rss_feeds_root", type=Path, help="Output RSS feeds root directory"
     )
     parser.add_argument(
         "--media-root", type=Path, default="/data/media", help="Media root directory"
