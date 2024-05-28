@@ -250,31 +250,36 @@ class PodcastChannel:
         return ret
 
 
-class PodcastRssFeed:
-    def __init__(self, programs: List[RecordedProgram]) -> None:
-        self.programs = programs
+def programs_to_podcast_rss_feed(
+    programs: List[RecordedProgram],
+    base_url: str,
+    media_root: Path,
+    remove_duplicated_episodes: bool = True,
+    filename: Optional[str] = None,
+    pretty: bool = True,
+) -> str:
+    programs = sorted(programs, key=lambda x: x.episode_id, reverse=True)
 
-    def to_rss(
-        self,
-        base_url: str,
-        media_root: Path,
-        filename: Optional[str] = None,
-        pretty: bool = True,
-    ) -> str:
-        programs = sorted(self.programs, key=lambda x: x.episode_id, reverse=True)
-        latest_program = programs[0]
-
-        # create channel of RSS feed
-        channel = PodcastChannel.from_recorded_program(latest_program)
-
-        # create items of RSS feed
-        feed_generator = channel.to_feed_generator()
+    if remove_duplicated_episodes:
+        unique_programs = []
+        prev_episode_id = None
         for program in programs:
-            item = PodcastItem.from_recorded_program(program, base_url, media_root)
-            item.set_feed_entry(feed_generator.add_entry())
+            if prev_episode_id != program.episode_id:
+                unique_programs.append(program)
+            prev_episode_id = program.episode_id
 
-        # output RSS feed
-        if filename:
-            feed_generator.rss_file(filename, pretty=pretty)
-            return filename
-        return feed_generator.rss_str(pretty=pretty)
+    # create channel of RSS feed
+    latest_program = programs[0]
+    channel = PodcastChannel.from_recorded_program(latest_program)
+
+    # create items of RSS feed
+    feed_generator = channel.to_feed_generator()
+    for program in programs:
+        item = PodcastItem.from_recorded_program(program, base_url, media_root)
+        item.set_feed_entry(feed_generator.add_entry())
+
+    # output RSS feed
+    if filename:
+        feed_generator.rss_file(filename, pretty=pretty)
+        return filename
+    return feed_generator.rss_str(pretty=pretty)
