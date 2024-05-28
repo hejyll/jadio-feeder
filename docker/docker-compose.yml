@@ -2,6 +2,15 @@ version: '3.1'
 
 services:
 
+  jadio-httpd:
+    image: httpd:2.4
+    restart: always
+    ports:
+      - ${HTTPD_PORT}:80
+    volumes:
+      - ${MEDIA_ROOT}:/usr/local/apache2/htdocs/media:ro
+      - ${RSS_ROOT}:/usr/local/apache2/htdocs/rss:ro
+
   jadio-podcast:
     build:
       context: .
@@ -9,5 +18,8 @@ services:
     restart: always
     tty: true
     shm_size: 2g
+    environment:
+      - BASE_URL=${BASE_URL}
     volumes:
-      - ${MEDIA_ROOT}:/data/media
+      - ${MEDIA_ROOT}:/data/media:ro
+      - ${RSS_ROOT}:/data/rss
