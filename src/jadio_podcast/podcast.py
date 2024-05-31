@@ -60,13 +60,13 @@ def _path_to_enclosure_length(path: Path) -> int:
     return os.path.getsize(str(path.absolute()))
 
 
-def _path_to_enclosure_type(path: Path) -> str:
+def _path_to_enclosure_type(path: Path, is_video: bool) -> str:
     if ".mp3" == path.suffix:
         return "audio/mpeg"
     elif ".m4a" == path.suffix:
         return "audio/x-m4a"
     elif ".mp4" == path.suffix:
-        return "video/mp4"
+        return "video/mp4" if is_video else "audio/x-m4a"
     elif ".mov" == path.suffix:
         return "video/quicktime"
     else:
@@ -83,6 +83,7 @@ class Enclosure:
     def from_path(
         cls,
         path: Union[str, Path],
+        is_video: bool,
         base_url: str,
         media_root: Path,
     ) -> Enclosure:
@@ -90,7 +91,7 @@ class Enclosure:
         return cls(
             url=_path_to_enclosure_url(path, media_root, base_url=base_url),
             length=_path_to_enclosure_length(path),
-            type=_path_to_enclosure_type(path),
+            type=_path_to_enclosure_type(path, is_video),
         )
 
 
@@ -156,7 +157,9 @@ class PodcastItem:
         duration = program.duration or _media_path_to_duration(program.filename)
         return cls(
             title=program.episode_name,
-            enclosure=Enclosure.from_path(program.filename, base_url, media_root),
+            enclosure=Enclosure.from_path(
+                program.filename, program.is_video, base_url, media_root
+            ),
             guid=str(program.episode_id),
             pub_date=program.datetime,
             description=program.description,
