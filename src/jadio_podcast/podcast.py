@@ -28,7 +28,10 @@ def _media_path_to_duration(path: Union[str, Path]) -> int:
     if ".mp3" == path.suffix:
         media = mp3.MP3(path)
     elif ".m4a" == path.suffix:
-        media = m4a.M4A(path)
+        # NOTE: M4A: Implementation removed. Every operation will raise. Use mp4 instead.
+        # https://mutagen.readthedocs.io/en/latest/changelog.html#id28
+        # media = m4a.M4A(path)
+        media = mp4.MP4(path)
     elif ".mp4" == path.suffix:
         media = mp4.MP4(path)
     else:
