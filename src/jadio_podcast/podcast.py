@@ -7,6 +7,7 @@ import urllib
 import urllib.parse
 from dataclasses import dataclass
 from enum import Enum
+from logging import getLogger
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -17,6 +18,8 @@ from jadio_recorder import RecordedProgram
 from mutagen import m4a, mp3, mp4
 
 RADIKO_LINK = "https://radiko.jp/"
+
+logger = getLogger(__file__)
 
 
 def _media_path_to_duration(path: Union[str, Path]) -> int:
@@ -286,8 +289,11 @@ def programs_to_podcast_rss_feed(
     # create items of RSS feed
     feed_generator = channel.to_feed_generator()
     for program in programs:
-        item = PodcastItem.from_recorded_program(program, base_url, media_root)
-        item.set_feed_entry(feed_generator.add_entry())
+        try:
+            item = PodcastItem.from_recorded_program(program, base_url, media_root)
+            item.set_feed_entry(feed_generator.add_entry())
+        except Exception as err:
+            logger.error(f"error: {err}\n{program}", stack_info=True)
 
     # output RSS feed
     if filename:
