@@ -264,7 +264,12 @@ def programs_to_podcast_rss_feed(
     filename: Optional[str] = None,
     pretty: bool = True,
 ) -> str:
-    programs = sorted(programs, key=lambda x: x.episode_id, reverse=True)
+    sort_key = "datetime"
+    if len(set(program.station_id for program in programs)) > 1:
+        sort_key = "datetime"
+    elif programs[0].station_id in ["onsen.ag", "hibiki-radio.jp"]:
+        sort_key = "episode_id"
+    programs = sorted(programs, key=lambda x: getattr(x, sort_key), reverse=True)
 
     if remove_duplicated_episodes:
         unique_programs = []
