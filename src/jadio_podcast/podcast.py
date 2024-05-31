@@ -280,6 +280,7 @@ def programs_to_podcast_rss_feed(
 
     # output RSS feed
     if filename:
+        Path(filename).parent.mkdir(exist_ok=True)
         feed_generator.rss_file(filename, pretty=pretty)
         return filename
     return feed_generator.rss_str(pretty=pretty)
