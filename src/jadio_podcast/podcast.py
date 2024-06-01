@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from logging import getLogger
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import feedgen.entry
 import feedgen.feed
@@ -204,7 +204,7 @@ class PodcastChannel:
     # Required tags
     title: str
     description: str
-    itunes_image: str
+    itunes_image: Optional[str] = None
     language: str = "ja"
     itunes_category: Optional[ItunesCategory] = None
     itunes_explicit: bool = False
@@ -220,6 +220,14 @@ class PodcastChannel:
     itunes_new_feed_url: Optional[str] = None
     itunes_block: bool = False
     itunes_complete: bool = False
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> PodcastChannel:
+        if "title" not in data:
+            raise ValueError("'title' field is not found")
+        if "description" not in data:
+            raise ValueError("'description' field is not found")
+        return cls(**data)
 
     @classmethod
     def from_recorded_program(
