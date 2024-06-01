@@ -15,7 +15,9 @@ import feedgen.entry
 import feedgen.feed
 import pytz
 from jadio_recorder import RecordedProgram
-from mutagen import m4a, mp3, mp4
+from mutagen import mp3, mp4
+
+PathLike = Union[str, Path]
 
 RADIKO_LINK = "https://radiko.jp/"
 
@@ -259,41 +261,82 @@ class PodcastChannel:
         return ret
 
 
+class PodcastRssFeedGenCreator:
+    def __init__(
+        self,
+        base_url: str,
+        media_root: PathLike,
+    ) -> None:
+        self.base_url = base_url
+        self.media_root = Path(media_root)
+
+    def create(
+        self,
+        programs: List[RecordedProgram],
+        sort_by: Optional[str] = None,
+        reverse: bool = True,
+        remove_duplicated_episodes: bool = True,
+    ) -> feedgen.feed.FeedGenerator:
+        if sort_by is not None:
+            available_sort_by = ["datetime", "episode_id"]
+            if sort_by not in available_sort_by:
+                raise ValueError(
+                    f"'{sort_by}' is not supported sort_by. "
+                    "Please select 'datetime' or 'eposode_id'"
+                )
+        elif len(set(program.station_id for program in programs)) > 1:
+            sort_by = "datetime"
+        elif programs[0].station_id in ["onsen.ag", "hibiki-radio.jp"]:
+            sort_by = "episode_id"
+        else:
+            sort_by = "datetime"
+        programs = sorted(programs, key=lambda x: getattr(x, sort_by), reverse=reverse)
+
+        if remove_duplicated_episodes:
+            unique_programs = []
+            prev_episode_id = None
+            for program in programs:
+                if prev_episode_id != program.episode_id:
+                    unique_programs.append(program)
+                prev_episode_id = program.episode_id
+            programs = unique_programs
+
+        # create channel of RSS feed
+        latest_program = programs[0]
+        channel = PodcastChannel.from_recorded_program(latest_program)
+
+        # create items of RSS feed
+        feed_generator = channel.to_feed_generator()
+        for program in programs:
+            try:
+                item = PodcastItem.from_recorded_program(
+                    program, self.base_url, self.media_root
+                )
+                # item order has been already controled
+                item.set_feed_entry(feed_generator.add_entry(order="append"))
+            except Exception as err:
+                logger.error(f"error: {err}\n{program}", stack_info=True)
+
+        return feed_generator
+
+
 def programs_to_podcast_rss_feed(
     programs: List[RecordedProgram],
     base_url: str,
     media_root: Path,
     remove_duplicated_episodes: bool = True,
-    filename: Optional[str] = None,
+    filename: Optional[PathLike] = None,
     pretty: bool = True,
 ) -> str:
-    sort_key = "datetime"
-    if len(set(program.station_id for program in programs)) > 1:
-        sort_key = "datetime"
-    elif programs[0].station_id in ["onsen.ag", "hibiki-radio.jp"]:
-        sort_key = "episode_id"
-    programs = sorted(programs, key=lambda x: getattr(x, sort_key), reverse=True)
-
-    if remove_duplicated_episodes:
-        unique_programs = []
-        prev_episode_id = None
-        for program in programs:
-            if prev_episode_id != program.episode_id:
-                unique_programs.append(program)
-            prev_episode_id = program.episode_id
-
-    # create channel of RSS feed
-    latest_program = programs[0]
-    channel = PodcastChannel.from_recorded_program(latest_program)
-
-    # create items of RSS feed
-    feed_generator = channel.to_feed_generator()
-    for program in programs:
-        try:
-            item = PodcastItem.from_recorded_program(program, base_url, media_root)
-            item.set_feed_entry(feed_generator.add_entry())
-        except Exception as err:
-            logger.error(f"error: {err}\n{program}", stack_info=True)
+    feed_generator = PodcastRssFeedGenCreator(
+        base_url,
+        media_root,
+    ).create(
+        programs,
+        sort_by=None,
+        reverse=True,
+        remove_duplicated_episodes=remove_duplicated_episodes,
+    )
 
     # output RSS feed
     if filename:
