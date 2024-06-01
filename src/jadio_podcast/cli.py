@@ -6,7 +6,7 @@ from pathlib import Path
 import tqdm
 from jadio_recorder import Database, RecordedProgram
 
-from .podcast import programs_to_podcast_rss_feed
+from .podcast import PodcastRssFeedGenCreator
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s"
@@ -51,13 +51,21 @@ def main():
     for (name, station_id), programs in tqdm.tqdm(groups.items()):
         name = name.replace("/", "_")
         filename = args.rss_feeds_root / station_id / f"{name}.xml"
-        programs_to_podcast_rss_feed(
-            programs,
+
+        # create FeedGenerator
+        feed_generator = PodcastRssFeedGenCreator(
             args.base_url,
             args.media_root,
+        ).create(
+            programs,
+            sort_by=None,
+            reverse=True,
             remove_duplicated_episodes=args.remove_dups,
-            filename=filename,
         )
+
+        # save RSS feed file
+        Path(filename).parent.mkdir(exist_ok=True)
+        feed_generator.rss_file(filename, pretty=True)
 
 
 if __name__ == "__main__":
