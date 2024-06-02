@@ -3,10 +3,8 @@ import logging
 from logging import getLogger
 from pathlib import Path
 
-from jadio_recorder import Database
-
 from .config import Config
-from .podcast import PodcastRssFeedGenCreator, RecordedProgram
+from .feeder import Feeder
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s"
@@ -35,37 +33,16 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
-    # construct config
     config: Config = Config.from_file(args.config)
-    logger.info(config.query)
-    if config.channel:
-        logger.info(config.channel)
 
-    # fetch specified recorded programs
-    db = Database(args.database_host)
-    programs = db.recorded_programs.find(config.query.to_mongo_format())
-    programs = [RecordedProgram.from_dict(program) for program in programs]
-    logger.info(f"fetch {len(programs)} program(s)")
-    if len(programs) == 0:
-        logger.info("RSS feed is not created")
-        quit()
-
-    # create FeedGenerator
-    feed_generator = PodcastRssFeedGenCreator(
+    with Feeder(
         args.base_url,
-        args.media_root,
-    ).create(
-        programs,
-        channel=config.channel,
-        sort_by=config.sort_by,
-        from_oldest=config.from_oldest,
-        remove_duplicates=config.remove_duplicates,
-    )
-
-    # save RSS feed file
-    args.rss_feed.parent.mkdir(exist_ok=True)
-    feed_generator.rss_file(args.rss_feed, pretty=True)
-    logger.info(f"save RSS feed to {args.rss_feed}")
+        rss_feed_root=args.rss_feed.parent,
+        media_root=args.media_root,
+        feeder_database_host=args.database_host,
+        recorder_database_host=args.database_host,
+    ) as feeder:
+        feeder.update_feed(config, args.rss_feed.stem)
 
 
 if __name__ == "__main__":
