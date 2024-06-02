@@ -29,9 +29,21 @@ def parse_args() -> argparse.Namespace:
         help="MongoDB host",
     )
     parser.add_argument(
-        "--remove-dups",
+        "--leave-duplicates",
         action="store_true",
-        help="Remove duplicated episodes",
+        help="Leave duplicated programs",
+    )
+    parser.add_argument(
+        "--sort-by",
+        type=str,
+        choices=[None, "datetime", "episode_id"],
+        default=None,
+        help="Sort key of programs",
+    )
+    parser.add_argument(
+        "--from-oldest",
+        action="store_true",
+        help="Sort programs from oldest",
     )
     args = parser.parse_args()
     return args
@@ -58,9 +70,9 @@ def main():
             args.media_root,
         ).create(
             programs,
-            sort_by=None,
-            reverse=True,
-            remove_duplicated_episodes=args.remove_dups,
+            sort_by=args.sort_by,
+            from_oldest=args.from_oldest,
+            remove_duplicates=not args.leave_duplicates,
         )
 
         # save RSS feed file

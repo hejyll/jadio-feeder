@@ -282,8 +282,8 @@ class PodcastRssFeedGenCreator:
         self,
         programs: List[RecordedProgram],
         sort_by: Optional[str] = None,
-        reverse: bool = True,
-        remove_duplicated_episodes: bool = True,
+        from_oldest: bool = False,
+        remove_duplicates: bool = True,
     ) -> feedgen.feed.FeedGenerator:
         if sort_by is not None:
             available_sort_by = ["datetime", "episode_id"]
@@ -298,15 +298,26 @@ class PodcastRssFeedGenCreator:
             sort_by = "episode_id"
         else:
             sort_by = "datetime"
-        programs = sorted(programs, key=lambda x: getattr(x, sort_by), reverse=reverse)
+        programs = sorted(
+            programs, key=lambda x: getattr(x, sort_by), reverse=not from_oldest
+        )
 
-        if remove_duplicated_episodes:
+        if remove_duplicates:
             unique_programs = []
+            prev_datetime = None
             prev_episode_id = None
             for program in programs:
-                if prev_episode_id != program.episode_id:
+                if (
+                    prev_datetime != program.datetime
+                    and prev_episode_id != program.episode_id
+                ):
                     unique_programs.append(program)
+                prev_datetime = program.datetime
                 prev_episode_id = program.episode_id
+            if len(programs) != len(unique_programs):
+                logger.info(
+                    f"found and removed {len(programs) - len(unique_programs)} duplicates"
+                )
             programs = unique_programs
 
         # create channel of RSS feed
