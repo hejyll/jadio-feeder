@@ -243,10 +243,9 @@ class PodcastChannel:
         cls,
         program: RecordedProgram,
     ) -> PodcastChannel:
-        description = f"<![CDATA[ {program.station_id}<br>{program.name} ]]>"
         return PodcastChannel(
             title=program.name,
-            description=description,
+            description=program.description,
             itunes_image=program.image_url,
             itunes_author=program.station_id,
             link=program.url,
