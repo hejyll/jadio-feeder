@@ -30,9 +30,7 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def main():
-    args = parse_args()
-
+def create_feed_without_database(args: argparse.Namespace) -> None:
     config: Config = Config.from_file(args.config)
 
     with Feeder(
@@ -43,6 +41,37 @@ def main():
         recorder_database_host=args.database_host,
     ) as feeder:
         feeder.update_feed(config, args.rss_feed.stem)
+
+
+def register_config(args: argparse.Namespace) -> None:
+    config: Config = Config.from_file(args.config)
+
+    with Feeder(
+        args.base_url,
+        rss_feed_root=args.rss_feed.parent,
+        media_root=args.media_root,
+        feeder_database_host=args.database_host,
+        recorder_database_host=args.database_host,
+    ) as feeder:
+        feeder.register_config(config)
+
+
+def update_feeds(args: argparse.Namespace) -> None:
+    with Feeder(
+        args.base_url,
+        rss_feed_root=args.rss_feed.parent,
+        media_root=args.media_root,
+        feeder_database_host=args.database_host,
+        recorder_database_host=args.database_host,
+    ) as feeder:
+        feeder.update_feeds()
+
+
+def main():
+    args = parse_args()
+    create_feed_without_database(args)
+    # register_config(args)
+    # update_feeds(args)
 
 
 if __name__ == "__main__":
