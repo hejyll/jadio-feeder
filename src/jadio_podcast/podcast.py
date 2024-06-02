@@ -192,7 +192,7 @@ class PodcastItem:
         entry.podcast.itunes_duration(self.itunes_duration)
         entry.link(href=self.link or RADIKO_LINK)
         # WORKAROUND: avoid file format error
-        entry.podcast.__itunes_image = self.itunes_image
+        entry.podcast._PodcastEntryExtension__itunes_image = self.itunes_image
         entry.podcast.itunes_explicit("yes" if self.itunes_explicit else "no")
 
         entry.podcast.itunes_title(self.itunes_title)
@@ -231,7 +231,6 @@ class PodcastChannel:
             raise ValueError("'title' field is not found")
         if "description" not in data:
             raise ValueError("'description' field is not found")
-
         ret = copy.deepcopy(data)
         if "itunes_category" in ret:
             ret["itunes_category"] = ItunesCategory.from_dict(ret["itunes_category"])
@@ -281,7 +280,7 @@ class PodcastChannel:
         ret.title(self.title)
         ret.description(self.description)
         # WORKAROUND: avoid file format error
-        ret.podcast.__itunes_image = self.itunes_image
+        ret.podcast._PodcastExtension__itunes_image = self.itunes_image
         ret.language(self.language)
         if self.itunes_category:
             ret.podcast.itunes_category(self.itunes_category.to_dict())
@@ -367,5 +366,6 @@ class PodcastRssFeedGenCreator:
                 item.set_feed_entry(feed_generator.add_entry(order="append"))
             except Exception as err:
                 logger.error(f"error: {err}\n{program}", stack_info=True)
+                raise err
 
         return feed_generator
