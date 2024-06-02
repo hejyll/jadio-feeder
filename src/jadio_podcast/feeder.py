@@ -51,7 +51,10 @@ class Feeder:
         self.recorder_db.close()
 
     def register_config(self, config: Config) -> None:
-        self.feeder_db.configs.insert_one(config.to_dict())
+        config = config.to_dict()
+        res = self.feeder_db.configs.update_one(config, {"$set": config}, upsert=True)
+        if res.upserted_id is not None:
+            logger.info(f"registered config: {res.upserted_id}\n{config}")
 
     def update_feed(
         self,
