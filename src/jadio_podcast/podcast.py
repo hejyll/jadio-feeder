@@ -106,10 +106,14 @@ class EpisodeType(Enum):
     BONUS: str = "bonus"
 
 
+@dataclass
 class ItunesCategory:
-    def __init__(self, cat: Optional[str] = None, sub: Optional[str] = None):
-        self.cat = cat
-        self.sub = sub
+    cat: Optional[str] = None
+    sub: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> ItunesCategory:
+        return cls(**data)
 
     def to_dict(self) -> Optional[Dict[str, str]]:
         if not self.cat:
@@ -227,7 +231,13 @@ class PodcastChannel:
             raise ValueError("'title' field is not found")
         if "description" not in data:
             raise ValueError("'description' field is not found")
-        return cls(**data)
+
+        ret = copy.deepcopy(data)
+        if "itunes_category" in ret:
+            ret["itunes_category"] = ItunesCategory.from_dict(ret["itunes_category"])
+        if "itunes_type" in ret:
+            ret["itunes_type"] = ItunesType(ret["itunes_type"])
+        return cls(**ret)
 
     @classmethod
     def from_recorded_program(
@@ -242,6 +252,26 @@ class PodcastChannel:
             itunes_author=program.station_id,
             link=program.url,
             copyright=program.copyright,
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return dict(
+            title=self.title,
+            description=self.description,
+            itunes_image=self.itunes_image,
+            language=self.language,
+            itunes_category=(
+                self.itunes_category.to_dict() if self.itunes_category else None
+            ),
+            itunes_explicit=self.itunes_explicit,
+            itunes_author=self.itunes_author,
+            link=self.link,
+            itunes_title=self.itunes_title,
+            itunes_type=self.itunes_type.value,
+            copyright=self.copyright,
+            itunes_new_feed_url=self.itunes_new_feed_url,
+            itunes_block=self.itunes_block,
+            itunes_complete=self.itunes_complete,
         )
 
     def to_feed_generator(self) -> feedgen.feed.FeedGenerator:

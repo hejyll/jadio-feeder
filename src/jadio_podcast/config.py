@@ -101,7 +101,7 @@ class Query(_Base):
 class Config(_Base):
     query: Query
     channel: Optional[PodcastChannel] = None
-    sort_by: Optional[str] = None,
+    sort_by: Optional[str] = None
     from_oldest: bool = False
     remove_duplicates: bool = True
 
@@ -116,4 +116,13 @@ class Config(_Base):
             sort_by=data.get("sort_by", None),
             from_oldest=data.get("from_oldest", False),
             remove_duplicates=data.get("remove_duplicates", True),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return dict(
+            query=self.query.to_dict(),
+            channel=self.channel.to_dict() if self.channel else None,
+            sort_by=self.sort_by,
+            from_oldest=self.from_oldest,
+            remove_duplicates=self.remove_duplicates,
         )
