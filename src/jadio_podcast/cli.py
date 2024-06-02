@@ -1,24 +1,26 @@
 import argparse
 import logging
-from collections import defaultdict
+from logging import getLogger
 from pathlib import Path
 
-import tqdm
-from jadio_recorder import Database, RecordedProgram
+from jadio_recorder import Database
 
-from .podcast import PodcastRssFeedGenCreator
+from .config import Config
+from .podcast import PodcastRssFeedGenCreator, RecordedProgram
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s"
 )
+logger = getLogger(__file__)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("base_url", type=str, help="Base URL of httpd")
     parser.add_argument(
-        "rss_feeds_root", type=Path, help="Output RSS feeds root directory"
+        "config", type=Path, help="Input config file path (JSON or YAML)"
     )
+    parser.add_argument("rss_feed", type=Path, help="Output RSS feed path (XML)")
     parser.add_argument(
         "--media-root", type=Path, default="/data/media", help="Media root directory"
     )
@@ -52,32 +54,37 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
+    # construct config
+    config: Config = Config.from_file(args.config)
+    logger.info(config.query)
+    if config.channel:
+        logger.info(config.channel)
+
+    # fetch specified recorded programs
     db = Database(args.database_host)
-    programs = list(db.recorded_programs.find({}))
+    programs = db.recorded_programs.find(config.query.to_mongo_format())
+    programs = [RecordedProgram.from_dict(program) for program in programs]
+    logger.info(f"fetch {len(programs)} program(s)")
+    if len(programs) == 0:
+        logger.info("RSS feed is not created")
+        quit()
 
-    groups = defaultdict(list)
-    for program in tqdm.tqdm(programs):
-        program = RecordedProgram.from_dict(program)
-        groups[(program.name, program.station_id)].append(program)
+    # create FeedGenerator
+    feed_generator = PodcastRssFeedGenCreator(
+        args.base_url,
+        args.media_root,
+    ).create(
+        programs,
+        channel=config.channel,
+        sort_by=args.sort_by,
+        from_oldest=args.from_oldest,
+        remove_duplicates=not args.leave_duplicates,
+    )
 
-    for (name, station_id), programs in tqdm.tqdm(groups.items()):
-        name = name.replace("/", "_")
-        filename = args.rss_feeds_root / station_id / f"{name}.xml"
-
-        # create FeedGenerator
-        feed_generator = PodcastRssFeedGenCreator(
-            args.base_url,
-            args.media_root,
-        ).create(
-            programs,
-            sort_by=args.sort_by,
-            from_oldest=args.from_oldest,
-            remove_duplicates=not args.leave_duplicates,
-        )
-
-        # save RSS feed file
-        Path(filename).parent.mkdir(exist_ok=True)
-        feed_generator.rss_file(filename, pretty=True)
+    # save RSS feed file
+    args.rss_feed.parent.mkdir(exist_ok=True)
+    feed_generator.rss_file(args.rss_feed, pretty=True)
+    logger.info(f"save RSS feed to {args.rss_feed}")
 
 
 if __name__ == "__main__":

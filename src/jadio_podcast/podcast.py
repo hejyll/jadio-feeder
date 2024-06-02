@@ -281,6 +281,7 @@ class PodcastRssFeedGenCreator:
     def create(
         self,
         programs: List[RecordedProgram],
+        channel: Optional[PodcastChannel] = None,
         sort_by: Optional[str] = None,
         from_oldest: bool = False,
         remove_duplicates: bool = True,
@@ -321,8 +322,9 @@ class PodcastRssFeedGenCreator:
             programs = unique_programs
 
         # create channel of RSS feed
-        latest_program = programs[0]
-        channel = PodcastChannel.from_recorded_program(latest_program)
+        if not channel:
+            latest_program = programs[-1 if from_oldest else 0]
+            channel = PodcastChannel.from_recorded_program(latest_program)
 
         # create items of RSS feed
         feed_generator = channel.to_feed_generator()
