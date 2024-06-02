@@ -17,9 +17,7 @@ logger = getLogger(__file__)
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("base_url", type=str, help="Base URL of httpd")
-    parser.add_argument(
-        "config", type=Path, help="Input config file path (JSON or YAML)"
-    )
+    parser.add_argument("config", type=Path, help="Input config path (JSON or YAML)")
     parser.add_argument("rss_feed", type=Path, help="Output RSS feed path (XML)")
     parser.add_argument(
         "--media-root", type=Path, default="/data/media", help="Media root directory"
