@@ -1,5 +1,7 @@
 # for this project
 *.xml
+*.bson
+*.json
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
