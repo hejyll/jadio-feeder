@@ -19,7 +19,7 @@ logger = getLogger(__file__)
 class Feeder:
     def __init__(
         self,
-        base_url: str,
+        base_url: str = "http://localhost",
         rss_feed_root: Union[str, Path] = ".",
         media_root: Union[str, Path] = ".",
         feeder_database_host: Optional[str] = None,
