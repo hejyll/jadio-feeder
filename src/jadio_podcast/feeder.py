@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from logging import getLogger
 from pathlib import Path
 from typing import Optional, Union
@@ -90,9 +91,20 @@ class Feeder:
         feed_generator.rss_file(rss_feed_path, pretty=pretty)
         logger.info(f"save RSS feed to {rss_feed_path}")
 
-    def update_feeds(self) -> None:
+    def update_feeds(self, force_update: bool = False) -> None:
         configs = list(self.feeder_db.configs.find({}))
         for config in tqdm.tqdm(configs):
             config_id = config.pop("_id")
             config = Config.from_dict(config)
+            if isinstance(config.query.datetime_range, list):
+                last_datetime = config.query.datetime_range[1]
+                if (
+                    last_datetime + dt.timedelta(days=7) < dt.datetime.now()
+                    and not force_update
+                    and (self._rss_feed_root / f"{str(config_id)}.xml").exists()
+                ):
+                    logger.info(
+                        f"skip updates to RSS feed of completed channels: {config.query}"
+                    )
+                    continue
             self.update_feed(config, config_id)
