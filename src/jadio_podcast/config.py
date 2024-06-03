@@ -70,7 +70,7 @@ class Query(_Base):
             station_ids=self.station_ids,
             persons=self.persons,
             words=self.words,
-            datetime_range=list(self.datetime_range),
+            datetime_range=list(self.datetime_range) if self.datetime_range else None,
         )
 
     def to_mongo_format(self) -> Dict[str, Any]:
