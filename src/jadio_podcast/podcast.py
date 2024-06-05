@@ -28,9 +28,7 @@ logger = getLogger(__name__)
 def _media_path_to_duration(path: Union[str, Path]) -> int:
     path = Path(path)
     if not path.exists():
-        # TODO: remove this debug pass
-        return 0
-        raise FileNotFoundError()
+        raise FileNotFoundError(f"{path} is not found")
     if ".mp3" == path.suffix:
         media = mp3.MP3(path)
     elif ".m4a" == path.suffix:
@@ -60,9 +58,7 @@ def _path_to_enclosure_url(path: Path, path_root: Path, base_url: str) -> str:
 
 def _path_to_enclosure_length(path: Path) -> int:
     if not path.exists():
-        # TODO: remove this debug pass
-        return 0
-        raise FileNotFoundError()
+        raise FileNotFoundError(f"{path} is not found")
     return os.path.getsize(str(path.absolute()))
 
 
