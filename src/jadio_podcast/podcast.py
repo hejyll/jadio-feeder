@@ -9,12 +9,13 @@ from dataclasses import dataclass
 from enum import Enum
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import feedgen.entry
 import feedgen.feed
 import pytz
-from jadio_recorder import RecordedProgram
+from bson import ObjectId
+from jadio import Program
 from mutagen import mp3, mp4
 
 PathLike = Union[str, Path]
@@ -157,17 +158,20 @@ class PodcastItem:
     itunes_block: bool = False
 
     @classmethod
-    def from_recorded_program(
+    def from_program(
         cls,
-        program: RecordedProgram,
+        program: Program,
+        program_id: ObjectId,
         base_url: str,
         media_root: Path,
     ) -> PodcastItem:
-        duration = program.duration or _media_path_to_duration(program.filename)
+        media_dir = media_root / str(program_id)
+        media_path = list((media_dir).glob("media.*"))[0]
+        duration = program.duration or _media_path_to_duration(media_path)
         return cls(
             title=program.episode_name,
             enclosure=Enclosure.from_path(
-                program.filename, program.is_video, base_url, media_root
+                media_path, program.is_video, base_url, media_root
             ),
             guid=str(program.episode_id),
             pub_date=program.datetime,
@@ -239,10 +243,7 @@ class PodcastChannel:
         return cls(**ret)
 
     @classmethod
-    def from_recorded_program(
-        cls,
-        program: RecordedProgram,
-    ) -> PodcastChannel:
+    def from_program(cls, program: Program) -> PodcastChannel:
         return PodcastChannel(
             title=program.name,
             description=program.description or program.information,
@@ -308,7 +309,7 @@ class PodcastRssFeedGenCreator:
 
     def create(
         self,
-        programs: List[RecordedProgram],
+        program_and_id_pairs: List[Tuple[Program, ObjectId]],
         channel: Optional[PodcastChannel] = None,
         sort_by: Optional[str] = None,
         from_oldest: bool = False,
@@ -321,8 +322,10 @@ class PodcastRssFeedGenCreator:
                     f"'{sort_by}' is not supported sort_by. "
                     "Please select 'datetime' or 'eposode_id'"
                 )
+        elif len(set(program.station_id for program, _ in program_and_id_pairs)) > 1:
             # do not sort by episode_id because multiple platforms may be mixed
             sort_by = "datetime"
+        elif program_and_id_pairs[0][0].station_id in ["onsen.ag", "hibiki-radio.jp"]:
             # if station_id is unified with onsen.ag or hibiki-radio.jp,
             # it is best to sort by episode_id.
             sort_by = "episode_id"
@@ -330,39 +333,42 @@ class PodcastRssFeedGenCreator:
             # if station_id is unified with stations of radiko.jp,
             # it is best to sort by datetime.
             sort_by = "datetime"
-        programs = sorted(
-            programs, key=lambda x: getattr(x, sort_by), reverse=not from_oldest
+        program_and_id_pairs = sorted(
+            program_and_id_pairs,
+            key=lambda x: getattr(x[0], sort_by),
+            reverse=not from_oldest,
         )
 
         if remove_duplicates:
-            unique_programs = []
+            unique_pairs = []
             prev_datetime = None
             prev_episode_id = None
-            for program in programs:
+            for program, program_id in program_and_id_pairs:
                 if (
                     prev_datetime != program.datetime
                     and prev_episode_id != program.episode_id
                 ):
-                    unique_programs.append(program)
+                    unique_pairs.append((program, program_id))
                 prev_datetime = program.datetime
                 prev_episode_id = program.episode_id
-            if len(programs) != len(unique_programs):
+            num_programs = len(program_and_id_pairs)
+            if num_programs != len(unique_pairs):
                 logger.info(
-                    f"found and removed {len(programs) - len(unique_programs)} duplicates"
+                    f"found and removed {num_programs - len(unique_pairs)} duplicates"
                 )
-            programs = unique_programs
+            program_and_id_pairs = unique_pairs
 
         # create channel of RSS feed
         if not channel:
-            latest_program = programs[-1 if from_oldest else 0]
-            channel = PodcastChannel.from_recorded_program(latest_program)
+            latest_program = program_and_id_pairs[-1 if from_oldest else 0][0]
+            channel = PodcastChannel.from_program(latest_program)
 
         # create items of RSS feed
         feed_generator = channel.to_feed_generator()
-        for program in programs:
+        for program, program_id in program_and_id_pairs:
             try:
-                item = PodcastItem.from_recorded_program(
-                    program, self.base_url, self.media_root
+                item = PodcastItem.from_program(
+                    program, program_id, self.base_url, self.media_root
                 )
                 # item order has been already controled
                 item.set_feed_entry(feed_generator.add_entry(order="append"))
