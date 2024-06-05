@@ -2,7 +2,7 @@ version: '3.1'
 
 services:
 
-  jadio-httpd:
+  httpd:
     image: httpd:2.4
     restart: always
     ports:
@@ -11,7 +11,7 @@ services:
       - ${MEDIA_ROOT}:/usr/local/apache2/htdocs/media:ro
       - ${RSS_ROOT}:/usr/local/apache2/htdocs/rss:ro
 
-  jadio-podcast:
+  jadio-feeder:
     build:
       context: .
       dockerfile: Dockerfile
