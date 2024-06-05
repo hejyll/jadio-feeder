@@ -21,7 +21,7 @@ PathLike = Union[str, Path]
 
 RADIKO_LINK = "https://radiko.jp/"
 
-logger = getLogger(__file__)
+logger = getLogger(__name__)
 
 
 def _media_path_to_duration(path: Union[str, Path]) -> int:

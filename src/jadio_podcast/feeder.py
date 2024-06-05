@@ -14,7 +14,7 @@ from .config import Config
 from .database import FeederDatabase
 from .podcast import PodcastRssFeedGenCreator
 
-logger = getLogger(__file__)
+logger = getLogger(__name__)
 
 
 class Feeder:
