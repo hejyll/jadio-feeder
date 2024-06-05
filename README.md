@@ -1,4 +1,4 @@
-# jadio-podcast
+# jadio-feeder
 
 ## Setup
 
