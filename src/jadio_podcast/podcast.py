@@ -321,11 +321,14 @@ class PodcastRssFeedGenCreator:
                     f"'{sort_by}' is not supported sort_by. "
                     "Please select 'datetime' or 'eposode_id'"
                 )
-        elif len(set(program.station_id for program in programs)) > 1:
+            # do not sort by episode_id because multiple platforms may be mixed
             sort_by = "datetime"
-        elif programs[0].station_id in ["onsen.ag", "hibiki-radio.jp"]:
+            # if station_id is unified with onsen.ag or hibiki-radio.jp,
+            # it is best to sort by episode_id.
             sort_by = "episode_id"
         else:
+            # if station_id is unified with stations of radiko.jp,
+            # it is best to sort by datetime.
             sort_by = "datetime"
         programs = sorted(
             programs, key=lambda x: getattr(x, sort_by), reverse=not from_oldest
