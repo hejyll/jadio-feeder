@@ -171,7 +171,7 @@ class PodcastItem:
             ),
             guid=str(program.episode_id),
             pub_date=program.datetime,
-            description=program.description,
+            description=program.description or program.information,
             itunes_duration=int(duration),
             link=program.url,
             itunes_image=program.image_url,
@@ -245,7 +245,7 @@ class PodcastChannel:
     ) -> PodcastChannel:
         return PodcastChannel(
             title=program.name,
-            description=program.description,
+            description=program.description or program.information,
             itunes_image=program.image_url,
             itunes_author=program.station_id,
             link=program.url,
