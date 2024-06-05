@@ -7,14 +7,14 @@ from typing import Optional, Union
 
 import tqdm
 from bson import ObjectId
-from jadio_recorder import Database as RecorderDatabase
-from jadio_recorder import RecordedProgram
+from jadio import Program
+from jadio_recorder import RecorderDatabase
 
 from .config import Config
 from .database import FeederDatabase
 from .podcast import PodcastRssFeedGenCreator
 
-logger = getLogger(__file__)
+logger = getLogger(__name__)
 
 
 class Feeder:
@@ -55,7 +55,7 @@ class Feeder:
         config = config.to_dict()
         res = self.feeder_db.configs.update_one(config, {"$set": config}, upsert=True)
         if res.upserted_id is not None:
-            logger.info(f"registered config: {res.upserted_id}\n{config}")
+            logger.debug(f"registered config: {res.upserted_id}\n{config}")
 
     def update_feed(
         self,
@@ -64,21 +64,23 @@ class Feeder:
         pretty: bool = True,
     ) -> None:
         # fetch specified recorded programs
-        logger.info(f"update RSS feed: {config}")
+        logger.debug(f"update RSS feed: {config}")
         query = config.query.to_mongo_format()
         programs = self.recorder_db.recorded_programs.find(query)
-        programs = [RecordedProgram.from_dict(program) for program in programs]
-        logger.info(f"fetch {len(programs)} program(s)")
-        if len(programs) == 0:
+        program_and_id_pairs = [
+            (Program.from_dict(program), program["_id"]) for program in programs
+        ]
+        if len(program_and_id_pairs) == 0:
             logger.info("find no programs. RSS feed is not created")
             return
+        logger.info(f"fetch {len(program_and_id_pairs)} program(s)")
 
         # create FeedGenerator
         feed_generator = PodcastRssFeedGenCreator(
             self._base_url,
             self._media_root,
         ).create(
-            programs,
+            program_and_id_pairs,
             channel=config.channel,
             sort_by=config.sort_by,
             from_oldest=config.from_oldest,
@@ -103,7 +105,7 @@ class Feeder:
                     and not force_update
                     and (self._rss_feed_root / f"{str(config_id)}.xml").exists()
                 ):
-                    logger.info(
+                    logger.debug(
                         f"skip updates to RSS feed of completed channels: {config.query}"
                     )
                     continue
