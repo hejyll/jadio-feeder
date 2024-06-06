@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from logging import getLogger
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import tqdm
 from bson import ObjectId
@@ -51,6 +51,12 @@ class Feeder:
         self.feeder_db.close()
         self.recorder_db.close()
 
+    def _update_timestamp(self, name: str) -> None:
+        timestamp = dt.datetime.now()
+        self.feeder_db.timestamp.update_one(
+            {"name": name}, {"$set": {"datetime": timestamp}}, upsert=True
+        )
+
     def register_config(self, config: Config) -> None:
         config = config.to_dict(serialize=True, unserialized_types=[dt.datetime])
         res = self.feeder_db.configs.update_one(config, {"$set": config}, upsert=True)
@@ -93,15 +99,20 @@ class Feeder:
         feed_generator.rss_file(rss_feed_path, pretty=pretty)
         logger.info(f"save RSS feed to {rss_feed_path}")
 
-    def update_feeds(self, force_update: bool = False) -> None:
+    def update_feeds(self, force_update: bool = False) -> List[Config]:
+        last_timestamp = self.feeder_db.timestamp.find_one({"name": "update_feeds"})
+        if last_timestamp:
+            last_timestamp = last_timestamp["datetime"]
+
         configs = list(self.feeder_db.configs.find({}))
+        ret = []
         for config in tqdm.tqdm(configs):
             config_id = config.pop("_id")
-            config = Config.from_dict(config)
+            config: Config = Config.from_dict(config)
             if isinstance(config.query.datetime_range, list):
                 last_datetime = config.query.datetime_range[1]
                 if (
-                    last_datetime + dt.timedelta(days=7) < dt.datetime.now()
+                    last_datetime < (last_timestamp or last_datetime)
                     and not force_update
                     and (self._rss_feed_root / f"{str(config_id)}.xml").exists()
                 ):
@@ -110,3 +121,8 @@ class Feeder:
                     )
                     continue
             self.update_feed(config, config_id)
+            ret.append(config)
+
+        self._update_timestamp("update_feeds")
+        logger.info(f"Finish updating {len(ret)} feeds")
+        return ret

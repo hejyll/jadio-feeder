@@ -23,8 +23,12 @@ class FeederDatabase:
 
     @property
     def _database(self) -> pymongo.database.Database:
-        return self._client.get_database("podcast")
+        return self._client.get_database("feeder")
 
     @property
     def configs(self) -> pymongo.collation.Collation:
         return self._database.get_collection("configs")
+
+    @property
+    def timestamp(self) -> pymongo.collation.Collation:
+        return self._database.get_collection("timestamp")
