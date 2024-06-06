@@ -154,7 +154,9 @@ class PodcastItem(BaseContainer):
         base_url: str,
         media_root: Path,
     ) -> PodcastItem:
-        media_dir = media_root / str(program_id)
+        media_dir = media_root.joinpath(
+            program.platform_id, program.station_id, str(program_id)
+        )
         media_path = list((media_dir).glob("media.*"))[0]
         duration = program.duration or _media_path_to_duration(media_path)
         return cls(
