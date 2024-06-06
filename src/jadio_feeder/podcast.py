@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import feedgen.entry
 import feedgen.feed
@@ -17,6 +17,7 @@ import pytz
 from bson import ObjectId
 from jadio import Program
 from mutagen import mp3, mp4
+from serdescontainer import BaseContainer
 
 PathLike = Union[str, Path]
 
@@ -104,21 +105,9 @@ class EpisodeType(Enum):
 
 
 @dataclass
-class ItunesCategory:
+class ItunesCategory(BaseContainer):
     cat: Optional[str] = None
     sub: Optional[str] = None
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> ItunesCategory:
-        return cls(**data)
-
-    def to_dict(self) -> Optional[Dict[str, str]]:
-        if not self.cat:
-            return None
-        ret = {"cat": self.cat}
-        if self.sub:
-            ret["sub"] = self.sub
-        return ret
 
 
 class ItunesType(Enum):
@@ -127,7 +116,7 @@ class ItunesType(Enum):
 
 
 @dataclass
-class PodcastItem:
+class PodcastItem(BaseContainer):
     """
     See: https://help.apple.com/itc/podcasts_connect/#/itcb54353390
     """
@@ -152,6 +141,10 @@ class PodcastItem:
     itunes_episode_type: EpisodeType = EpisodeType.FULL
     podcast_transcript: Optional[str] = None
     itunes_block: bool = False
+
+    def custom_types() -> List[Any]:
+        """For BaseContainer.from_dict"""
+        return [Enclosure, EpisodeType]
 
     @classmethod
     def from_program(
@@ -204,7 +197,7 @@ class PodcastItem:
 
 
 @dataclass
-class PodcastChannel:
+class PodcastChannel(BaseContainer):
     # Required tags
     title: str
     description: str
@@ -225,18 +218,9 @@ class PodcastChannel:
     itunes_block: bool = False
     itunes_complete: bool = False
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> PodcastChannel:
-        if "title" not in data:
-            raise ValueError("'title' field is not found")
-        if "description" not in data:
-            raise ValueError("'description' field is not found")
-        ret = copy.deepcopy(data)
-        if "itunes_category" in ret:
-            ret["itunes_category"] = ItunesCategory.from_dict(ret["itunes_category"])
-        if "itunes_type" in ret:
-            ret["itunes_type"] = ItunesType(ret["itunes_type"])
-        return cls(**ret)
+    def custom_types() -> List[Any]:
+        """For BaseContainer.from_dict"""
+        return [ItunesCategory, ItunesType]
 
     @classmethod
     def from_program(cls, program: Program) -> PodcastChannel:
@@ -247,26 +231,6 @@ class PodcastChannel:
             itunes_author=program.station_id,
             link=program.url,
             copyright=program.copyright,
-        )
-
-    def to_dict(self) -> Dict[str, Any]:
-        return dict(
-            title=self.title,
-            description=self.description,
-            itunes_image=self.itunes_image,
-            language=self.language,
-            itunes_category=(
-                self.itunes_category.to_dict() if self.itunes_category else None
-            ),
-            itunes_explicit=self.itunes_explicit,
-            itunes_author=self.itunes_author,
-            link=self.link,
-            itunes_title=self.itunes_title,
-            itunes_type=self.itunes_type.value,
-            copyright=self.copyright,
-            itunes_new_feed_url=self.itunes_new_feed_url,
-            itunes_block=self.itunes_block,
-            itunes_complete=self.itunes_complete,
         )
 
     def to_feed_generator(self) -> feedgen.feed.FeedGenerator:

@@ -52,7 +52,7 @@ class Feeder:
         self.recorder_db.close()
 
     def register_config(self, config: Config) -> None:
-        config = config.to_dict()
+        config = config.to_dict(serialize=True, unserialized_types=[dt.datetime])
         res = self.feeder_db.configs.update_one(config, {"$set": config}, upsert=True)
         if res.upserted_id is not None:
             logger.debug(f"registered config: {res.upserted_id}\n{config}")
