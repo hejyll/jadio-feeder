@@ -3,6 +3,8 @@
 *.bson
 *.json
 .DS_Store
+media/
+svr/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
