@@ -54,3 +54,8 @@ class Config(BaseContainer):
     def custom_types() -> List[Any]:
         """For BaseContainer.from_dict"""
         return [Query, PodcastChannel]
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any], **kwargs) -> Config:
+        data.pop("_id", None)
+        return super().from_dict(data, **kwargs)
