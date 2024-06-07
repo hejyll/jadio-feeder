@@ -11,6 +11,7 @@ from .podcast import PodcastChannel
 
 @dataclass
 class Query(BaseContainer):
+    platform_ids: Optional[List[str]] = None
     station_ids: Optional[List[str]] = None
     persons: Optional[List[str]] = None
     words: Optional[List[str]] = None
@@ -18,6 +19,8 @@ class Query(BaseContainer):
 
     def to_mongo_format(self) -> Dict[str, Any]:
         and_conditions = []
+        if self.platform_ids:
+            and_conditions.append({"platform_id": {"$in": self.platform_ids}})
         if self.station_ids:
             and_conditions.append({"station_id": {"$in": self.station_ids}})
         if self.persons:
