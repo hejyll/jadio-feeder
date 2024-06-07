@@ -2,6 +2,9 @@ import argparse
 import logging
 from logging import getLogger
 from pathlib import Path
+from typing import Any, Optional
+
+from tabulate import tabulate
 
 from .config import Config
 from .feeder import Feeder
@@ -12,54 +15,106 @@ logging.basicConfig(
 logger = getLogger(__file__)
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("base_url", type=str, help="Base URL of httpd")
-    parser.add_argument("config", type=Path, help="Input config path (JSON or YAML)")
-    parser.add_argument("rss_feed", type=Path, help="Output RSS feed path (XML)")
-    parser.add_argument(
-        "--media-root", type=Path, default="/data/media", help="Media root directory"
-    )
+def add_argument_common(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--database-host",
         type=str,
         default="mongodb://localhost:27017/",
         help="MongoDB host",
     )
-    args = parser.parse_args()
-    return args
 
 
-def create_feed_without_database(args: argparse.Namespace) -> None:
-    config: Config = Config.from_file(args.config)
+def add_argument_register_config(parser: argparse.ArgumentParser):
+    parser.set_defaults(handler=register_config)
+    parser.add_argument("config", type=Path, help="Input config path (JSON or YAML)")
 
-    with Feeder(
-        args.base_url,
-        rss_feed_root=args.rss_feed.parent,
-        media_root=args.media_root,
-        feeder_database_host=args.database_host,
-        recorder_database_host=args.database_host,
-    ) as feeder:
-        feeder.update_feed(config, args.rss_feed.stem)
+
+def add_argument_show_configs(parser: argparse.ArgumentParser):
+    parser.set_defaults(handler=show_configs)
+
+
+def add_argument_update_feeds(parser: argparse.ArgumentParser):
+    parser.set_defaults(handler=update_feeds)
+    parser.add_argument(
+        "--base-url", type=str, default="http://localhost", help="Base URL of httpd"
+    )
+    parser.add_argument(
+        "--rss-root", type=Path, default="./rss", help="RSS root directory"
+    )
+    parser.add_argument(
+        "--media-root", type=Path, default="./media", help="Media root directory"
+    )
+
+
+def parse_args() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    name_and_fn_pairs = [
+        ("register-config", add_argument_register_config),
+        ("show-configs", add_argument_show_configs),
+        ("update-feeds", add_argument_update_feeds),
+    ]
+    for name, add_arument_fn in name_and_fn_pairs:
+        sub_parser = subparsers.add_parser(name, help=f"see `{name} -h`")
+        add_arument_fn(sub_parser)
+        add_argument_common(sub_parser)
+
+    return parser
 
 
 def register_config(args: argparse.Namespace) -> None:
     config: Config = Config.from_file(args.config)
 
     with Feeder(
-        args.base_url,
-        rss_feed_root=args.rss_feed.parent,
-        media_root=args.media_root,
         feeder_database_host=args.database_host,
         recorder_database_host=args.database_host,
     ) as feeder:
         feeder.register_config(config)
 
 
+def show_configs(args: argparse.Namespace) -> None:
+    with Feeder(
+        feeder_database_host=args.database_host,
+        recorder_database_host=args.database_host,
+    ) as feeder:
+        table = []
+        configs = feeder.feeder_db.configs.find({})
+        for config in configs:
+            config_id = config.get("_id", None)
+            config = Config.from_dict(config)
+            query, channel = config.query, config.channel
+
+            datetime_range = query.datetime_range
+            if datetime_range:
+                datetime_range = tuple(dt.strftime("%Y-%m-%d") for dt in datetime_range)
+            else:
+                datetime_range = ""
+
+            def pretty_list(x: Optional[Any] = None) -> str:
+                return ", ".join(x) if x else ""
+
+            row = {
+                "config_id": str(config_id),
+                "query.platform_ids": pretty_list(query.platform_ids),
+                "query.station_ids": pretty_list(query.station_ids),
+                "query.persons": pretty_list(query.persons),
+                "query.words": pretty_list(query.words),
+                "query.datetime_range": datetime_range,
+                "channel.title": channel.title,
+            }
+            table.append(row)
+
+    table = sorted(
+        table, key=lambda x: (x["query.platform_ids"], x["query.station_ids"])
+    )
+    print(tabulate(table, headers="keys"))
+
+
 def update_feeds(args: argparse.Namespace) -> None:
     with Feeder(
         args.base_url,
-        rss_feed_root=args.rss_feed.parent,
+        rss_feed_root=args.rss_root,
         media_root=args.media_root,
         feeder_database_host=args.database_host,
         recorder_database_host=args.database_host,
@@ -68,10 +123,12 @@ def update_feeds(args: argparse.Namespace) -> None:
 
 
 def main():
-    args = parse_args()
-    create_feed_without_database(args)
-    # register_config(args)
-    # update_feeds(args)
+    parser = parse_args()
+    args = parser.parse_args()
+    if hasattr(args, "handler"):
+        args.handler(args)
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":
