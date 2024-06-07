@@ -120,8 +120,11 @@ class Feeder:
                         f"skip updates to RSS feed of completed channels: {config.query}"
                     )
                     continue
-            self.update_feed(config, config_id)
-            ret.append(config)
+            try:
+                self.update_feed(config, config_id)
+                ret.append(config)
+            except Exception as err:
+                logger.error(f"error: {err}\n{config}", stack_info=True)
 
         self._update_timestamp("update_feeds")
         logger.info(f"Finish updating {len(ret)} feeds")
