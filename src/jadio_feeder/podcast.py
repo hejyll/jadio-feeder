@@ -166,7 +166,7 @@ class PodcastItem(BaseContainer):
             ),
             guid=str(program.episode_id),
             pub_date=program.datetime,
-            description=program.description or program.information,
+            description=program.information or program.description,
             itunes_duration=int(duration),
             link=program.url,
             itunes_image=program.image_url,
