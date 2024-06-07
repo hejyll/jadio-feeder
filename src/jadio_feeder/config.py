@@ -11,6 +11,20 @@ from .podcast import PodcastChannel
 
 @dataclass
 class Query(BaseContainer):
+    """Class for generating queries to find radio programs registered in MongoDB.
+
+    Attributes:
+        platform_ids (list of str): Specify ids of platforms to be searched.
+            e.g. "radiko.jp", "onsen.ag" and "hibiki-radio.jp".
+        station_ids (list of str): Specify ids of stations to be searched.
+            e.g. "TBS".
+        persons (list of str): Specify names of personalities or guests to be searched.
+        words (list of str): Specify the words to be searched.
+            This is used to search for radio titles and description fields.
+        datetime_range (list of `dt.datetime`): Specify the datetime range to be searched.
+            If only one date is specified, then programs after that date are searched.
+    """
+
     platform_ids: Optional[List[str]] = None
     station_ids: Optional[List[str]] = None
     persons: Optional[List[str]] = None
