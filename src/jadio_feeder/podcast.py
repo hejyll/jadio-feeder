@@ -230,7 +230,7 @@ class PodcastChannel(BaseContainer):
             title=program.name,
             description=program.description or program.information,
             itunes_image=program.image_url,
-            itunes_author=program.station_id,
+            itunes_author=program.platform_id,
             link=program.url,
             copyright=program.copyright,
         )
@@ -287,9 +287,8 @@ class PodcastRssFeedGenCreator:
         elif len(set(program.station_id for program, _ in program_and_id_pairs)) > 1:
             # do not sort by episode_id because multiple platforms may be mixed
             sort_by = "datetime"
-        elif program_and_id_pairs[0][0].station_id in ["onsen.ag", "hibiki-radio.jp"]:
-            # if station_id is unified with onsen.ag or hibiki-radio.jp,
-            # it is best to sort by episode_id.
+        elif program_and_id_pairs[0][0].platform_id in ["onsen.ag", "hibiki-radio.jp"]:
+            # if platform is onsen.ag or hibiki-radio.jp, it is best to sort by episode_id.
             sort_by = "episode_id"
         else:
             # if station_id is unified with stations of radiko.jp,
