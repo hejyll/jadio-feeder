@@ -20,6 +20,7 @@ services:
     shm_size: 2g
     environment:
       - BASE_URL=${BASE_URL}
+      - MONGO_HOST=${MONGO_HOST}
     volumes:
       - ${MEDIA_ROOT}:/data/media:ro
       - ${RSS_ROOT}:/data/rss
