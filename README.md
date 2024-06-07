@@ -1,6 +1,14 @@
 # Jadio Feeder: Podcast RSS feed creator for Jadio
 
+jadio-feeder is a tool for grouping radio programs recorded by jadio-recorder in podcast RSS feeds.
+
 ## Setup
+
+### Requirements
+
+jadio-feeder uses jadio-recorder's MongoDB to target radio programs recorded by jadio-recorder.
+
+It is recommended that the MongoDB server be set up with [`jadio-recorder/docker/docker-compose.yml`](https://github.com/hejyll/jadio-recorder/blob/main/docker/docker-compose.yml). See [`jadio-recorder/README.md`](https://github.com/hejyll/jadio-recorder/blob/main/README.md) for details.
 
 ### Install
 
@@ -12,7 +20,8 @@ pip install git+https://github.com/hejyll/jadio-feeder
 
 ```bash
 export DOCKER_BUILDKIT=1
-(cd ./docker && docker-compose up -d)
+git clone https://github.com/hejyll/jadio-feeder
+(cd jadio-feeder/docker && docker-compose up -d)
 ```
 
 ## Usage
@@ -20,6 +29,28 @@ export DOCKER_BUILDKIT=1
 ### CLI
 
 #### Register config to create RSS feed
+
+Create the following config file to group the recorded radio programs as podcast channel.　The program grouping is specified in `query`, and the information as a podcast channel is described in `channel`.
+
+`query` is parsed into [`Query`](src/jadio_feeder/config.py) class and `channel` is parsed into [`PodcastChannel`](src/jadio_feeder/podcast.py) class. See docstring of those classes for what kind of queries and information can be described.
+
+And see ["A Podcaster’s Guide to RSS"](https://help.apple.com/itc/podcasts_connect/#/itcb54353390) for more information on the podcast channel.
+
+```yml
+# The following query retrieve TBS programs that include “JUNK” in the program name or description.
+query:
+  station_ids:
+    - TBS
+  words:
+    - JUNK
+
+# Describe basic information about the podcast channel.
+channel:
+  title: JUNK
+  description: All JUNK programs
+  itunes_image: https://tbsradio.g.kuroco-img.app/v=1624347703/files/topics/743_ext_18_0.jpg
+  link: https://www.tbsradio.jp/junk/
+```
 
 ```bash
 jadio-feeder register-config \
@@ -110,7 +141,7 @@ For example, if you execute `register-config` and `show-configs` above, you will
 
 TODO
 
-Refer to the scripts in `samples/`.
+Refer to the scripts in [`samples/`](samples/).
 
 ## License
 

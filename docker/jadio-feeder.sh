@@ -1,7 +1,7 @@
 #!/bin/bash
 
-jadio-podcast \
-    ${BASE_URL} \
-    /data/rss \
-    --media-root /data/media \
-    --database-host "mongodb://docker_mongo_1:27017/"
+jadio-feeder update-feeds \
+    --base-url="${BASE_URL}" \
+    --rss-root=/data/rss \
+    --media-root=/data/media \
+    --database-host="${MONGO_HOST}"

@@ -200,6 +200,10 @@ class PodcastItem(BaseContainer):
 
 @dataclass
 class PodcastChannel(BaseContainer):
+    """
+    See: https://help.apple.com/itc/podcasts_connect/#/itcb54353390
+    """
+
     # Required tags
     title: str
     description: str
