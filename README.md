@@ -32,7 +32,7 @@ git clone https://github.com/hejyll/jadio-feeder
 
 Create the following config file to group the recorded radio programs as podcast channel.　The program grouping is specified in `query`, and the information as a podcast channel is described in `channel`.
 
-`query` is parsed into [`Query`](https://github.com/hejyll/jadio-feeder/blob/main/src/jadio_feeder/config.py) class and `channel` is parsed into [`PodcastChannel`](https://github.com/hejyll/jadio-feeder/blob/main/src/jadio_feeder/podcast.py) class. See docstring of those classes for what kind of queries and information can be described.
+`query` is parsed into [`Query`](src/jadio_feeder/config.py) class and `channel` is parsed into [`PodcastChannel`](src/jadio_feeder/podcast.py) class. See docstring of those classes for what kind of queries and information can be described.
 
 And see ["A Podcaster’s Guide to RSS"](https://help.apple.com/itc/podcasts_connect/#/itcb54353390) for more information on the podcast channel.
 
@@ -141,7 +141,7 @@ For example, if you execute `register-config` and `show-configs` above, you will
 
 TODO
 
-Refer to the scripts in `samples/`.
+Refer to the scripts in [`samples/`](samples/).
 
 ## License
 
